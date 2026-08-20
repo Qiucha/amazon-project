@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyCharm
+.idea/
+
+# Agent Related
+.agents
+.scratch
+docs/
+sources/
+
+AGENTS.md
+CONTEXT.md
+skills-lock.json
