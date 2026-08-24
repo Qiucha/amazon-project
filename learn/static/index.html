@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admissions learn — guided insights</title>
+  <style>
+    :root {
+      --ink: #1a1f24;
+      --muted: #5c6670;
+      --line: #d5dce3;
+      --paper: #f7f8f6;
+      --panel: #ffffff;
+      --accent: #0f6b5c;
+      --accent-soft: #d8efe9;
+      --warn: #8a4b12;
+      --warn-soft: #f3e6d4;
+      --mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+      --sans: "IBM Plex Sans", "Source Sans 3", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+    body { min-height: 100vh; }
+    button { font: inherit; cursor: pointer; }
+    [hidden] { display: none !important; }
+    .token { font-family: var(--mono); font-size: 0.92em; }
+    .hint { color: var(--muted); font-size: 0.82rem; }
+    a { color: var(--accent); }
+    .shell { max-width: 980px; margin: 0 auto; padding: 1rem 1.1rem 3rem; }
+    header.page h1 { font-size: 1.45rem; margin: 0 0 0.35rem; font-weight: 650; }
+    header.page .lede { margin: 0; color: var(--muted); line-height: 1.45; max-width: 42rem; }
+    .nav {
+      position: sticky; top: 0; z-index: 5;
+      display: flex; flex-wrap: wrap; gap: 0.35rem;
+      padding: 0.55rem 0; margin: 0.85rem 0 1.25rem;
+      background: color-mix(in srgb, var(--paper) 92%, transparent);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav a {
+      text-decoration: none; font-size: 0.78rem; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 0.28rem 0.65rem; background: var(--panel);
+    }
+    .nav a:hover { border-color: var(--accent); color: var(--accent); }
+    section.station {
+      margin: 0 0 2.25rem;
+      scroll-margin-top: 3.2rem;
+    }
+    section.station > h2 {
+      font-size: 1.15rem; margin: 0 0 0.35rem; font-weight: 650;
+    }
+    section.station > .intro {
+      margin: 0 0 0.9rem; color: var(--muted); line-height: 1.45; max-width: 44rem;
+    }
+    .glossary {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;
+    }
+    @media (max-width: 720px) {
+      .glossary { grid-template-columns: 1fr; }
+    }
+    .gloss {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+    }
+    .gloss .sym {
+      font-family: var(--mono); font-size: 0.95rem; font-weight: 650;
+      color: var(--accent); margin: 0 0 0.2rem;
+    }
+    .gloss .phys { margin: 0; font-size: 0.84rem; line-height: 1.4; color: var(--ink); }
+    .gloss .note { margin: 0.35rem 0 0; font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      padding: 0.65rem 0.85rem;
+      margin: 0.75rem 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.9rem; line-height: 1.45;
+    }
+    .callout strong { display: block; margin-bottom: 0.15rem; font-size: 0.82rem; letter-spacing: 0.02em; }
+    .callout.warn {
+      border-left-color: var(--warn);
+      background: var(--warn-soft);
+    }
+    .seg {
+      display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+      margin: 0 0 0.75rem;
+    }
+    .seg button {
+      border: 0; background: var(--panel); padding: 0.4rem 0.8rem; color: var(--muted);
+    }
+    .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+    .map-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+    }
+    @media (max-width: 820px) {
+      .map-grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.75rem 0.85rem;
+    }
+    .panel h3 {
+      margin: 0 0 0.25rem; font-size: 0.88rem; font-weight: 650;
+    }
+    .panel .why { margin: 0 0 0.55rem; font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+    .span2 { grid-column: 1 / -1; }
+    .chart-wrap { width: 100%; overflow: hidden; }
+    .chart-wrap svg { display: block; width: 100%; height: auto; }
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 0.55rem 0.9rem; margin-top: 0.45rem;
+      font-size: 0.72rem; color: var(--muted);
+    }
+    .legend i {
+      display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px;
+      margin-right: 0.25rem; vertical-align: -0.05rem;
+    }
+    .num-footer {
+      margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.45rem 0.9rem;
+      font-family: var(--mono); font-size: 0.78rem; align-items: center;
+    }
+    .num-footer span { color: var(--muted); }
+    .pill {
+      display: inline-flex; align-items: center;
+      border: 1px solid var(--line); border-radius: 999px; padding: 0.15rem 0.55rem;
+      font-size: 0.78rem; background: var(--panel);
+    }
+    .pill.sel { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+    .empty {
+      border: 1px dashed #b9a48a; background: var(--warn-soft); color: var(--warn);
+      padding: 1rem 1.1rem; border-radius: 6px;
+    }
+    .status { font-size: 0.78rem; color: var(--muted); min-height: 1.2em; }
+    .status.error { color: var(--warn); }
+    .compare {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-top: 0.5rem;
+    }
+    @media (max-width: 640px) {
+      .compare { grid-template-columns: 1fr; }
+    }
+    .metric-row {
+      display: flex; justify-content: space-between; gap: 0.5rem;
+      font-family: var(--mono); font-size: 0.82rem;
+      padding: 0.28rem 0; border-bottom: 1px solid var(--line);
+    }
+    .metric-row:last-child { border-bottom: 0; }
+    .metric-row .k { color: var(--muted); }
+    .takeaway-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem;
+    }
+    @media (max-width: 900px) {
+      .takeaway-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .takeaway-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 0.7rem 0.8rem;
+    }
+    .card h4 {
+      margin: 0 0 0.4rem; font-size: 0.82rem; font-weight: 650;
+      font-family: var(--mono);
+    }
+    .card .regime-tag {
+      font-size: 0.72rem; color: var(--muted); margin-bottom: 0.45rem;
+    }
+    .pinned {
+      font-size: 0.78rem; color: var(--muted); margin: 0.35rem 0 0;
+    }
+    .pinned span { font-family: var(--mono); color: var(--ink); }
+    .footer-link {
+      margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line);
+      font-size: 0.85rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="page">
+      <h1>Admissions learn</h1>
+      <p class="lede">
+        Guided walk through the one-stage and two-criterion Simulation labs:
+        what each number means physically, and what the comparative statics imply
+        about diversity and the student rat race.
+      </p>
+      <p class="pinned">Pinned illustration: <span>λ=(0.448, 0.252, 0.192, 0.108)</span> · <span>B=1</span> · uniform <span>F(c)=c/B</span> · <span>D₁=0.36</span></p>
+      <p class="status" id="global-status" aria-live="polite"></p>
+    </header>
+
+    <nav class="nav" aria-label="Stations">
+      <a href="#setup">Setup</a>
+      <a href="#one-stage">One-stage</a>
+      <a href="#stratified">Stratified</a>
+      <a href="#mixed">Mixed</a>
+      <a href="#takeaway">Takeaway</a>
+    </nav>
+
+    <section class="station" id="setup">
+      <h2>1 · What to focus on</h2>
+      <p class="intro">
+        Keep these quantities distinct. Regime and stability are labels on an equilibrium,
+        not outcome metrics. Intensity of the rat race is the tutoring threshold
+        <span class="token">S<sub>d</sub></span> (or participation
+        <span class="token">F(S<sub>d</sub>)</span>), summarized across groups by population tutoring mass.
+      </p>
+      <div class="glossary">
+        <div class="gloss">
+          <p class="sym">Q</p>
+          <p class="phys">Quota — fraction of the applicant population the university can admit.</p>
+          <p class="note">Model-controlled. Larger Q does not automatically mean less competition.</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">w</p>
+          <p class="phys">Diversity weight in university value v = (1−w)a + w d.</p>
+          <p class="note">How much the university prefers the non-manipulable dimension d.</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">S<sub>d</sub> · F(S<sub>d</sub>)</p>
+          <p class="phys">Tutoring threshold and within-group participation for diversity group d.</p>
+          <p class="note">Students with cost c ≤ S<sub>d</sub> tutor. Physical “how fierce is gaming here.”</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">mass</p>
+          <p class="phys">Population tutoring mass — share of all applicants who tutor.</p>
+          <p class="note">Primary intensity summary across both diversity groups.</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">C<sub>d</sub></p>
+          <p class="phys">Credibility — share of the observed high-academic pool with diversity d whose true a is 1.</p>
+          <p class="note">Tutoring dilutes C<sub>d</sub>: the high-score signal becomes less trustworthy.</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">μ<sub>ad</sub> · x<sub>ad</sub></p>
+          <p class="phys">Posterior evaluation (how the university ranks observed type ad) and admission probability.</p>
+          <p class="note">μ drives ranking; x is who actually gets seats after filling Q.</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">adm a=1 · adm d=1</p>
+          <p class="phys">Shares of underlying a=1 and d=1 inside the admitted class.</p>
+          <p class="note">Class composition — not the same as applicant stratum mass D₁.</p>
+        </div>
+        <div class="gloss">
+          <p class="sym">(a, d)</p>
+          <p class="phys">Underlying type in {00, 01, 10, 11}. Tutoring flips observed a only; d cannot be faked.</p>
+          <p class="note">University sees observed type after gaming, then ranks by μ.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="station" id="one-stage">
+      <h2>2 · One-stage capacity-expansion paradox</h2>
+      <p class="intro">
+        At <span class="token">w = 0</span> the two-criterion engine nests the one-stage lab.
+        Toggle quota: in the selected tight equilibrium, a larger class can raise tutoring intensity.
+      </p>
+      <div class="seg" role="group" aria-label="Quota for one-stage">
+        <button type="button" data-station="one" data-q="0.33" aria-pressed="true">Q = 0.33</button>
+        <button type="button" data-station="one" data-q="0.40" aria-pressed="false">Q = 0.40</button>
+      </div>
+      <div class="callout" id="one-callout"><strong>Insight</strong><span id="one-insight">Loading…</span></div>
+      <div class="status" id="one-status"></div>
+      <div class="map-grid" id="one-map"></div>
+      <div class="compare" id="one-compare"></div>
+    </section>
+
+    <section class="station" id="stratified">
+      <h2>3 · Stratified rat race (w = 3/4)</h2>
+      <p class="intro">
+        Strong diversity preference makes ranking
+        <span class="token">μ₁₁ &gt; μ₀₁ &gt; μ₁₀ &gt; μ₀₀</span> tutoring-independent.
+        Diversity chooses <em>who</em> races; competition in the marginal group remains.
+        Quotas sit on opposite sides of <span class="token">D₁ = 0.36</span>.
+      </p>
+      <div class="seg" role="group" aria-label="Quota for stratified">
+        <button type="button" data-station="strat" data-q="0.33" aria-pressed="true">Q = 0.33 (&lt; D₁)</button>
+        <button type="button" data-station="strat" data-q="0.40" aria-pressed="false">Q = 0.40 (&gt; D₁)</button>
+      </div>
+      <div class="callout" id="strat-callout"><strong>Insight</strong><span id="strat-insight">Loading…</span></div>
+      <div class="status" id="strat-status"></div>
+      <div class="map-grid" id="strat-map"></div>
+    </section>
+
+    <section class="station" id="mixed">
+      <h2>4 · Mixed tight-quota (w = 1/4)</h2>
+      <p class="intro">
+        Mild diversity weight: before tutoring, ranking is
+        <span class="token">μ₁₁ &gt; μ₁₀ &gt; μ₀₁ &gt; μ₀₀</span>.
+        At the selected mixed equilibrium the diversity premium is neutralized at the margin by
+        gaming-induced credibility differences.
+      </p>
+      <div class="seg" role="group" aria-label="Quota for mixed">
+        <button type="button" data-station="mixed" data-q="0.33" aria-pressed="true">Q = 0.33</button>
+        <button type="button" data-station="mixed" data-q="0.40" aria-pressed="false">Q = 0.40</button>
+      </div>
+      <div class="callout" id="mixed-callout"><strong>Insight</strong><span id="mixed-insight">Loading…</span></div>
+      <div class="status" id="mixed-status"></div>
+      <div class="map-grid" id="mixed-map"></div>
+      <div class="compare" id="mixed-compare"></div>
+    </section>
+
+    <section class="station" id="takeaway">
+      <h2>5 · Main takeaway</h2>
+      <p class="intro">
+        Across all six notebook <span class="token">(w, Q)</span> points, valuing diversity in the
+        objective alone does not eliminate the rat race. The mechanism changes by regime;
+        intensity (mass / thresholds) does not vanish.
+      </p>
+      <div class="callout warn">
+        <strong>Writeup §5</strong>
+        Moving from a single criterion to a multi-criteria admission objective does not by itself
+        eliminate the student rat race. Strategic responses reshape the informational content of
+        the criteria and can partially neutralize the university’s intended diversity preference.
+      </div>
+      <div class="status" id="take-status"></div>
+      <div class="takeaway-grid" id="take-grid"></div>
+      <p class="footer-link">
+        Free-play knobs live in the Interactive explorer
+        (<span class="token">python -m explorer.server</span> on port 8765).
+        This page locks presets to the Simulation-lab exhibits.
+      </p>
+    </section>
+  </div>
+
+  <script>
+    const B_COST = 1.0;
+    const LAMBDA = { "00": 0.448, "01": 0.252, "10": 0.192, "11": 0.108 };
+    const D1 = LAMBDA["01"] + LAMBDA["11"];
+
+    const state = {
+      oneQ: 0.33,
+      stratQ: 0.33,
+      mixedQ: 0.33,
+      cache: new Map(),
+      beforeCache: new Map(),
+      oneLow: null,
+      oneHigh: null,
+      pending: 0,
+      error: null,
+    };
+
+    function fmt(v, digits = 3) {
+      if (v == null || Number.isNaN(v)) return "—";
+      return Number(v).toFixed(digits);
+    }
+
+    function cacheKey(Q, w) {
+      return `${Q}|${w}`;
+    }
+
+    function compactFromOutcomes(o, regime, stability) {
+      return {
+        regime: regime || "—",
+        stability: stability || "—",
+        S0: o.tutoring_threshold_0,
+        S1: o.tutoring_threshold_1,
+        F0: o.tutoring_participation_rate_0,
+        F1: o.tutoring_participation_rate_1,
+        mass: o.population_tutoring_mass,
+        exp: o.aggregate_tutoring_expenditure,
+        x00: o.admission_probability_00,
+        x01: o.admission_probability_01,
+        x10: o.admission_probability_10,
+        x11: o.admission_probability_11,
+        C0: o.credibility_0,
+        C1: o.credibility_1,
+        mu00: o.posterior_evaluation_00,
+        mu01: o.posterior_evaluation_01,
+        mu10: o.posterior_evaluation_10,
+        mu11: o.posterior_evaluation_11,
+        adm_a: o.admitted_high_ability_share,
+        adm_d: o.admitted_diversity_share,
+      };
+    }
+
+    function selectedEq(analysis) {
+      if (!analysis || !analysis.selected_equilibrium) return null;
+      const raw = analysis.selected_equilibrium;
+      return compactFromOutcomes(raw.outcomes, raw.regime, raw.stability);
+    }
+
+    function observedMasses(eq) {
+      return {
+        "00": LAMBDA["00"] * (1 - eq.F0),
+        "01": LAMBDA["01"] * (1 - eq.F1),
+        "10": LAMBDA["10"] + LAMBDA["00"] * eq.F0,
+        "11": LAMBDA["11"] + LAMBDA["01"] * eq.F1,
+      };
+    }
+
+    function rankingPretty(eq) {
+      const items = [
+        ["11", eq.mu11], ["10", eq.mu10], ["01", eq.mu01], ["00", eq.mu00],
+      ];
+      const ordered = [...items].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      let s = "μ" + ordered[0][0];
+      for (let i = 1; i < ordered.length; i++) {
+        const tie = Math.abs(ordered[i - 1][1] - ordered[i][1]) < 1e-6;
+        s += (tie ? " = " : " > ") + "μ" + ordered[i][0];
+      }
+      return s;
+    }
+
+    function svgTutoringCost(eq) {
+      const W = 520, H = 168, padL = 42, padR = 16, padT = 18, padB = 36;
+      const plotW = W - padL - padR, plotH = H - padT - padB;
+      const xScale = (c) => padL + (c / B_COST) * plotW;
+      const y0 = padT + plotH * 0.22;
+      const y1 = padT + plotH * 0.62;
+      const h = plotH * 0.28;
+      const s0 = Math.max(0, Math.min(B_COST, eq.S0));
+      const s1 = Math.max(0, Math.min(B_COST, eq.S1));
+      const densTop = padT;
+      const densH = plotH * 0.12;
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tutoring thresholds on uniform cost support">
+        <rect x="${padL}" y="${densTop}" width="${plotW}" height="${densH}" fill="#eef1ef" stroke="#d5dce3"/>
+        <text x="${padL}" y="${densTop - 4}" font-size="10" fill="#5c6670">uniform density on [0, B]</text>
+        <rect x="${padL}" y="${y0}" width="${xScale(s0) - padL}" height="${h}" fill="#9fd0c4" opacity="0.85"/>
+        <rect x="${padL}" y="${y0}" width="${plotW}" height="${h}" fill="none" stroke="#d5dce3"/>
+        <line x1="${xScale(s0)}" y1="${y0 - 4}" x2="${xScale(s0)}" y2="${y0 + h + 4}" stroke="#1a1f24" stroke-width="2"/>
+        <text x="${padL + 4}" y="${y0 + h / 2 + 4}" font-size="11" fill="#1a1f24">d=0 tutors</text>
+        <text x="${xScale(s0) + 4}" y="${y0 - 6}" font-size="11" font-family="IBM Plex Mono, monospace" fill="#1a1f24">S0=${fmt(eq.S0)}</text>
+        <rect x="${padL}" y="${y1}" width="${xScale(s1) - padL}" height="${h}" fill="#7aa3bd" opacity="0.85"/>
+        <rect x="${padL}" y="${y1}" width="${plotW}" height="${h}" fill="none" stroke="#d5dce3"/>
+        <line x1="${xScale(s1)}" y1="${y1 - 4}" x2="${xScale(s1)}" y2="${y1 + h + 4}" stroke="#1a1f24" stroke-width="2"/>
+        <text x="${padL + 4}" y="${y1 + h / 2 + 4}" font-size="11" fill="#1a1f24">d=1 tutors</text>
+        <text x="${Math.min(xScale(s1) + 4, W - padR - 70)}" y="${y1 - 6}" font-size="11" font-family="IBM Plex Mono, monospace" fill="#1a1f24">S1=${fmt(eq.S1)}</text>
+        <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="#5c6670"/>
+        <text x="${padL}" y="${H - 12}" font-size="11" fill="#5c6670">c = 0</text>
+        <text x="${padL + plotW}" y="${H - 12}" font-size="11" fill="#5c6670" text-anchor="end">c = B</text>
+        <text x="${padL + plotW / 2}" y="${H - 12}" font-size="11" fill="#5c6670" text-anchor="middle">tutoring cost c</text>
+      </svg>`;
+    }
+
+    function svgMuVsX(types) {
+      const ordered = [...types].sort((p, q) => q.mu - p.mu || (q.a - p.a));
+      const W = 520, H = 200, padL = 40, padR = 44, padT = 16, padB = 36;
+      const plotW = W - padL - padR, plotH = H - padT - padB;
+      const n = ordered.length;
+      const gap = 12;
+      const barW = (plotW - gap * (n - 1)) / n;
+      const muMax = Math.max(1e-6, ...ordered.map((t) => t.mu), 1);
+      const bars = ordered.map((t, i) => {
+        const x = padL + i * (barW + gap);
+        const h = (t.mu / muMax) * plotH;
+        const y = padT + plotH - h;
+        const cx = x + barW / 2;
+        const cy = padT + plotH - t.x * plotH;
+        return `
+          <rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="#0f6b5c" opacity="0.85" rx="3"/>
+          <circle cx="${cx}" cy="${cy}" r="5.5" fill="#8a4b12" stroke="#fff" stroke-width="1.5"/>
+          <text x="${cx}" y="${H - 14}" font-size="12" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="#1a1f24">${t.key}</text>
+          <text x="${cx}" y="${y - 4}" font-size="10" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="#5c6670">${fmt(t.mu, 2)}</text>`;
+      }).join("");
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Posterior evaluation bars with admission probability dots">
+        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + plotH}" stroke="#d5dce3"/>
+        <line x1="${padL}" y1="${padT + plotH}" x2="${padL + plotW}" y2="${padT + plotH}" stroke="#d5dce3"/>
+        <text x="${padL - 6}" y="${padT + 8}" font-size="10" fill="#5c6670" text-anchor="end">μ</text>
+        <text x="${padL + plotW + 6}" y="${padT + 8}" font-size="10" fill="#8a4b12">x</text>
+        ${bars}
+      </svg>`;
+    }
+
+    function svgQuotaStack(admitted, Q, isMarginal) {
+      const W = 520, H = 120, padL = 16, padR = 16, padT = 28, padB = 40;
+      const plotW = W - padL - padR;
+      const y = padT, h = 36;
+      const colors = { "11": "#0f6b5c", "10": "#3d6b8a", "01": "#7aa3bd", "00": "#b7c0c7" };
+      let x = padL;
+      const segs = admitted.filter((t) => t.seat > 1e-9).map((t) => {
+        const w = Q > 0 ? (t.seat / Q) * plotW : 0;
+        const node = `<g>
+          <rect x="${x}" y="${y}" width="${Math.max(w, 0)}" height="${h}" fill="${colors[t.key] || "#999"}"
+            ${isMarginal(t) ? 'stroke="#8a4b12" stroke-width="2" stroke-dasharray="4 2"' : 'stroke="none"'}/>
+          ${w > 28 ? `<text x="${x + w / 2}" y="${y + h / 2 + 4}" font-size="11" font-family="IBM Plex Mono, monospace" text-anchor="middle" fill="#fff">${t.key}</text>` : ""}
+        </g>`;
+        x += w;
+        return node;
+      }).join("");
+      const qMark = padL + plotW;
+      return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Stacked quota fill by observed type">
+        <rect x="${padL}" y="${y}" width="${plotW}" height="${h}" fill="#eef1ef" stroke="#d5dce3"/>
+        ${segs}
+        <line x1="${qMark}" y1="${y - 6}" x2="${qMark}" y2="${y + h + 6}" stroke="#1a1f24" stroke-width="2"/>
+        <text x="${qMark}" y="${y - 10}" font-size="11" text-anchor="end" fill="#1a1f24">Q = ${fmt(Q)}</text>
+        <text x="${padL}" y="${H - 14}" font-size="11" fill="#5c6670">← higher μ</text>
+        <text x="${padL + plotW}" y="${H - 14}" font-size="11" fill="#5c6670" text-anchor="end">lower μ →</text>
+      </svg>`;
+    }
+
+    function chartsFor(eq, Q) {
+      if (!eq) {
+        return `<div class="empty span2"><strong>No selected equilibrium</strong>
+          Largest locally stable by population tutoring mass found none.</div>`;
+      }
+      const m = observedMasses(eq);
+      const types = [
+        { key: "10", a: 1, d: 0, x: eq.x10, mu: eq.mu10 },
+        { key: "11", a: 1, d: 1, x: eq.x11, mu: eq.mu11 },
+        { key: "00", a: 0, d: 0, x: eq.x00, mu: eq.mu00 },
+        { key: "01", a: 0, d: 1, x: eq.x01, mu: eq.mu01 },
+      ];
+      const ranked = [...types].sort((p, q) => q.mu - p.mu || (q.a - p.a));
+      const admitted = ranked.map((t) => ({ ...t, seat: m[t.key] * t.x, mass: m[t.key] }));
+      const isMarginal = (t) => t.x > 1e-9 && t.x < 1 - 1e-9;
+      return `
+        <div class="panel">
+          <h3>Tutoring on the cost axis</h3>
+          <p class="why">Shaded left of each mark = who tutors. Vertical marks are S<sub>d</sub>.</p>
+          <div class="chart-wrap">${svgTutoringCost(eq)}</div>
+          <div class="num-footer">
+            <span>mass</span> <strong>${fmt(eq.mass)}</strong>
+            <span>C0</span> <strong>${fmt(eq.C0)}</strong>
+            <span>C1</span> <strong>${fmt(eq.C1)}</strong>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Posterior ranking vs admission</h3>
+          <p class="why">Bars: μ. Dots: admission probability x. Ranking: ${rankingPretty(eq)}</p>
+          <div class="chart-wrap">${svgMuVsX(types)}</div>
+          <div class="legend">
+            <span><i style="background:#0f6b5c"></i>μ</span>
+            <span><i style="background:#8a4b12;border-radius:99px"></i>x</span>
+          </div>
+        </div>
+        <div class="panel span2">
+          <h3>Quota fill</h3>
+          <p class="why">Admitted mass by observed type, ordered by μ. Hatched = marginal pool.</p>
+          <div class="chart-wrap">${svgQuotaStack(admitted, Q, isMarginal)}</div>
+          <div class="num-footer">
+            <span class="pill sel">${eq.regime}</span>
+            <span class="pill">${eq.stability}</span>
+            <span>adm a=1</span> <strong>${fmt(eq.adm_a)}</strong>
+            <span>adm d=1</span> <strong>${fmt(eq.adm_d)}</strong>
+          </div>
+        </div>`;
+    }
+
+    function metricCard(title, eq) {
+      if (!eq) return `<div class="panel"><h3>${title}</h3><p class="hint">—</p></div>`;
+      return `<div class="panel">
+        <h3>${title}</h3>
+        <div class="metric-row"><span class="k">S0 / S1</span><span>${fmt(eq.S0)} / ${fmt(eq.S1)}</span></div>
+        <div class="metric-row"><span class="k">mass</span><span>${fmt(eq.mass)}</span></div>
+        <div class="metric-row"><span class="k">C0 / C1</span><span>${fmt(eq.C0)} / ${fmt(eq.C1)}</span></div>
+        <div class="metric-row"><span class="k">μ10 / μ11</span><span>${fmt(eq.mu10)} / ${fmt(eq.mu11)}</span></div>
+        <div class="metric-row"><span class="k">adm a=1 · d=1</span><span>${fmt(eq.adm_a)} · ${fmt(eq.adm_d)}</span></div>
+      </div>`;
+    }
+
+    async function fetchAnalyze(Q, w) {
+      const key = cacheKey(Q, w);
+      if (state.cache.has(key)) return state.cache.get(key);
+      const response = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ university_quota: Q, diversity_weight: w }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+      state.cache.set(key, body);
+      return body;
+    }
+
+    async function fetchBefore(Q, w) {
+      const key = cacheKey(Q, w);
+      if (state.beforeCache.has(key)) return state.beforeCache.get(key);
+      const response = await fetch("/before", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ university_quota: Q, diversity_weight: w }),
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
+      state.beforeCache.set(key, body);
+      return body;
+    }
+
+    function setStationStatus(id, text, isError) {
+      const el = document.getElementById(id);
+      el.className = isError ? "status error" : "status";
+      el.textContent = text || "";
+    }
+
+    function setGlobalStatus() {
+      const el = document.getElementById("global-status");
+      if (state.error) {
+        el.className = "status error";
+        el.textContent = state.error;
+        return;
+      }
+      el.className = "status";
+      el.textContent = state.pending > 0 ? "Updating panels…" : "";
+    }
+
+    async function renderOneStage() {
+      try {
+        const [low, high, cur] = await Promise.all([
+          fetchAnalyze(0.33, 0.0),
+          fetchAnalyze(0.40, 0.0),
+          fetchAnalyze(state.oneQ, 0.0),
+        ]);
+        state.oneLow = selectedEq(low);
+        state.oneHigh = selectedEq(high);
+        const eq = selectedEq(cur);
+        document.getElementById("one-map").innerHTML = chartsFor(eq, state.oneQ);
+        document.getElementById("one-compare").innerHTML =
+          metricCard("Q = 0.33 selected", state.oneLow) +
+          metricCard("Q = 0.40 selected", state.oneHigh);
+
+        const sLow = state.oneLow && state.oneLow.S0;
+        const sHigh = state.oneHigh && state.oneHigh.S0;
+        const massLow = state.oneLow && state.oneLow.mass;
+        const massHigh = state.oneHigh && state.oneHigh.mass;
+        const paradox =
+          sLow != null && sHigh != null && sHigh > sLow + 1e-9 &&
+          massLow != null && massHigh != null && massHigh > massLow + 1e-9;
+        const nestHint = Math.abs(state.oneQ - 0.40) < 1e-9 && eq
+          ? ` At Q=0.40 the nested identity is S* = F(S*) = 4/7 ≈ 0.571 (here S0=${fmt(eq.S0)}).`
+          : "";
+        document.getElementById("one-insight").textContent = paradox
+          ? `Capacity-expansion paradox: raising Q from 0.33 to 0.40 raises selected S* (${fmt(sLow)} → ${fmt(sHigh)}) and population tutoring mass (${fmt(massLow)} → ${fmt(massHigh)}). More seats intensify gaming in this tight equilibrium.${nestHint}`
+          : `Selected equilibrium at w=0, Q=${fmt(state.oneQ, 2)}. Compare the side-by-side cards for Q↑ ⇒ S*↑.${nestHint}`;
+        setStationStatus("one-status", "");
+      } catch (err) {
+        setStationStatus("one-status", String(err.message || err), true);
+      }
+    }
+
+    async function renderStratified() {
+      try {
+        const analysis = await fetchAnalyze(state.stratQ, 0.75);
+        const eq = selectedEq(analysis);
+        document.getElementById("strat-map").innerHTML = chartsFor(eq, state.stratQ);
+        if (!eq) {
+          document.getElementById("strat-insight").textContent = "No selected equilibrium.";
+          return;
+        }
+        const rank = rankingPretty(eq);
+        const expected =
+          Math.abs(eq.mu11 - eq.mu01) > 1e-9 &&
+          eq.mu11 > eq.mu01 && eq.mu01 > eq.mu10 && eq.mu10 > eq.mu00;
+        let who;
+        if (state.stratQ < D1) {
+          who = `Q < D₁: the race is inside d=1 (S1=${fmt(eq.S1)} > 0) while d=0 sits out (S0=${fmt(eq.S0)}).`;
+        } else {
+          who = `Q > D₁: leftover competition is inside d=0 (S0=${fmt(eq.S0)} > 0) while d=1 is fully admitted on the margin of interest (S1=${fmt(eq.S1)}).`;
+        }
+        const check =
+          (state.stratQ < D1 && eq.S0 < 1e-6 && eq.S1 > 1e-6) ||
+          (state.stratQ > D1 && eq.S1 < 1e-6 && eq.S0 > 1e-6);
+        document.getElementById("strat-insight").textContent =
+          (expected ? `Ranking ${rank} is tutoring-independent at this w. ` : `Current ranking: ${rank}. `) +
+          who +
+          (check ? " Diversity moved who races; it did not remove competition." : "");
+        setStationStatus("strat-status", "");
+      } catch (err) {
+        setStationStatus("strat-status", String(err.message || err), true);
+      }
+    }
+
+    async function renderMixed() {
+      try {
+        const [analysis, beforeBody, otherQ] = await Promise.all([
+          fetchAnalyze(state.mixedQ, 0.25),
+          fetchBefore(state.mixedQ, 0.25),
+          fetchAnalyze(state.mixedQ < 0.35 ? 0.40 : 0.33, 0.25),
+        ]);
+        const eq = selectedEq(analysis);
+        const before = compactFromOutcomes(beforeBody.outcomes);
+        const other = selectedEq(otherQ);
+        document.getElementById("mixed-map").innerHTML = chartsFor(eq, state.mixedQ);
+        document.getElementById("mixed-compare").innerHTML =
+          metricCard("Before tutoring (S=0)", before) +
+          metricCard("Selected equilibrium", eq);
+
+        if (!eq) {
+          document.getElementById("mixed-insight").textContent = "No selected equilibrium.";
+          return;
+        }
+        const gap = eq.C0 - eq.C1;
+        const target = 0.25 / 0.75;
+        const muClose = Math.abs(eq.mu10 - eq.mu11) < 1e-4;
+        const gapClose = Math.abs(gap - target) < 1e-3;
+        const beforeRank = rankingPretty(before);
+        let cap = "";
+        if (other) {
+          const thisMass = eq.mass;
+          const thatMass = other.mass;
+          const thisQ = state.mixedQ;
+          const thatQ = state.mixedQ < 0.35 ? 0.40 : 0.33;
+          if (thatQ > thisQ && thatMass > thisMass + 1e-9) {
+            cap = ` Raising Q also raises both selected thresholds here (mass ${fmt(thisMass)} → ${fmt(thatMass)} at Q=${fmt(thatQ, 2)}).`;
+          } else if (thisQ > thatQ && thisMass > thatMass + 1e-9) {
+            cap = ` Raising Q also raises both selected thresholds (mass ${fmt(thatMass)} at Q=${fmt(thatQ, 2)} → ${fmt(thisMass)} here).`;
+          }
+        }
+        document.getElementById("mixed-insight").textContent =
+          `At S=0, ranking is ${beforeRank}. ` +
+          (muClose && gapClose
+            ? `Selected mixed equilibrium equates μ10=μ11 (${fmt(eq.mu10)}) and sets C0−C1=${fmt(gap)} = w/(1−w)=1/3: the diversity premium equals extra gaming-induced credibility loss.`
+            : `Selected: μ10=${fmt(eq.mu10)}, μ11=${fmt(eq.mu11)}, C0−C1=${fmt(gap)} (target 1/3).`) +
+          cap;
+        setStationStatus("mixed-status", "");
+      } catch (err) {
+        setStationStatus("mixed-status", String(err.message || err), true);
+      }
+    }
+
+    async function renderTakeaway() {
+      const points = [
+        [0.0, 0.33], [0.0, 0.40],
+        [0.25, 0.33], [0.25, 0.40],
+        [0.75, 0.33], [0.75, 0.40],
+      ];
+      try {
+        const analyses = await Promise.all(points.map(([w, Q]) => fetchAnalyze(Q, w)));
+        const roles = {
+          "0|0.33": "Nested one-stage",
+          "0|0.40": "Nested one-stage · Q↑ raises S*",
+          "0.25|0.33": "Mixed · μ10=μ11",
+          "0.25|0.40": "Mixed · both S<sub>d</sub> rise",
+          "0.75|0.33": "Stratified · race in d=1",
+          "0.75|0.40": "Stratified · race in d=0",
+        };
+        document.getElementById("take-grid").innerHTML = analyses.map((analysis, i) => {
+          const [w, Q] = points[i];
+          const eq = selectedEq(analysis);
+          const role = roles[`${w}|${Q}`] || "";
+          if (!eq) {
+            return `<div class="card"><h4>w=${fmt(w, 2)} · Q=${fmt(Q, 2)}</h4><p class="hint">No selected eq.</p></div>`;
+          }
+          return `<div class="card">
+            <h4>w=${fmt(w, 2)} · Q=${fmt(Q, 2)}</h4>
+            <div class="regime-tag">${role}</div>
+            <div class="metric-row"><span class="k">S0 / S1</span><span>${fmt(eq.S0)} / ${fmt(eq.S1)}</span></div>
+            <div class="metric-row"><span class="k">mass</span><span>${fmt(eq.mass)}</span></div>
+            <div class="metric-row"><span class="k">regime</span><span>${eq.regime}</span></div>
+          </div>`;
+        }).join("");
+        setStationStatus("take-status", "");
+      } catch (err) {
+        setStationStatus("take-status", String(err.message || err), true);
+      }
+    }
+
+    function bindSeg() {
+      document.querySelectorAll(".seg button[data-station]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const station = btn.getAttribute("data-station");
+          const q = Number(btn.getAttribute("data-q"));
+          document.querySelectorAll(`.seg button[data-station="${station}"]`).forEach((b) => {
+            b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+          });
+          if (station === "one") {
+            state.oneQ = q;
+            refreshOne();
+          } else if (station === "strat") {
+            state.stratQ = q;
+            refreshStrat();
+          } else if (station === "mixed") {
+            state.mixedQ = q;
+            refreshMixed();
+          }
+        });
+      });
+    }
+
+    async function withPending(fn) {
+      state.pending += 1;
+      setGlobalStatus();
+      try {
+        await fn();
+        state.error = null;
+      } catch (err) {
+        state.error = String(err.message || err);
+      } finally {
+        state.pending = Math.max(0, state.pending - 1);
+        setGlobalStatus();
+      }
+    }
+
+    function refreshOne() { return withPending(renderOneStage); }
+    function refreshStrat() { return withPending(renderStratified); }
+    function refreshMixed() { return withPending(renderMixed); }
+    function refreshTake() { return withPending(renderTakeaway); }
+
+    bindSeg();
+    (async () => {
+      await Promise.all([refreshOne(), refreshStrat(), refreshMixed(), refreshTake()]);
+    })();
+  </script>
+</body>
+</html>
