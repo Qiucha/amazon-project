@@ -122,16 +122,16 @@ def _shares(scenario: TwoCriterionScenario) -> dict[tuple[int, int], float]:
 
 
 def _posterior_classes(
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
 ) -> list[list[tuple[int, int]]]:
     remaining = list(OBSERVED_TYPES)
     classes: list[list[tuple[int, int]]] = []
     while remaining:
-        peak = max(posterior[observed] for observed in remaining)
+        peak = max(posterior_evaluations[observed] for observed in remaining)
         group = [
             observed
             for observed in remaining
-            if abs(posterior[observed] - peak) <= TIE_TOLERANCE
+            if abs(posterior_evaluations[observed] - peak) <= TIE_TOLERANCE
         ]
         remaining = [observed for observed in remaining if observed not in group]
         classes.append(group)
@@ -141,14 +141,14 @@ def _posterior_classes(
 def _is_better(
     left: tuple[int, int],
     right: tuple[int, int],
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
 ) -> bool:
-    return posterior[left] > posterior[right] + TIE_TOLERANCE
+    return posterior_evaluations[left] > posterior_evaluations[right] + TIE_TOLERANCE
 
 
 def _hat_candidate(
     types_in_class: set[tuple[int, int]],
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
     benefit: float,
     tutoring_threshold_0: float,
     tutoring_threshold_1: float,
@@ -164,10 +164,10 @@ def _hat_candidate(
         if high_in and low_in:
             return {}
         if high_in:
-            low_probability = 0.0 if not _is_better(low, high, posterior) else 1.0
+            low_probability = 0.0 if not _is_better(low, high, posterior_evaluations) else 1.0
             hat[high] = min(1.0, max(0.0, low_probability + offset))
         if low_in:
-            high_probability = 1.0 if _is_better(high, low, posterior) else 0.0
+            high_probability = 1.0 if _is_better(high, low, posterior_evaluations) else 0.0
             hat[low] = min(1.0, max(0.0, high_probability - offset))
     return hat
 
@@ -175,7 +175,7 @@ def _hat_candidate(
 def _rationalizing_split(
     rationing_class: list[tuple[int, int]],
     masses: dict[tuple[int, int], float],
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
     residual: float,
     benefit: float,
     tutoring_threshold_0: float,
@@ -192,7 +192,7 @@ def _rationalizing_split(
 
     hat = _hat_candidate(
         set(rationing_class),
-        posterior,
+        posterior_evaluations,
         benefit,
         tutoring_threshold_0,
         tutoring_threshold_1,
@@ -221,13 +221,13 @@ def _common_lottery(
 
 def _admission_probabilities(
     masses: dict[tuple[int, int], float],
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
     quota: float,
     benefit: float,
     tutoring_threshold_0: float,
     tutoring_threshold_1: float,
 ) -> dict[tuple[int, int], float]:
-    classes = _posterior_classes(posterior)
+    classes = _posterior_classes(posterior_evaluations)
     assigned: dict[tuple[int, int], float] = {}
     residual = quota
     rationing_class: list[tuple[int, int]] | None = None
@@ -262,7 +262,7 @@ def _admission_probabilities(
         split = _rationalizing_split(
             rationing_class,
             masses,
-            posterior,
+            posterior_evaluations,
             rationing_residual,
             benefit,
             tutoring_threshold_0,
@@ -277,7 +277,7 @@ def _admission_probabilities(
             continue
         if any(
             assigned.get(other, 0.0) > TIE_TOLERANCE
-            and _is_better(observed, other, posterior)
+            and _is_better(observed, other, posterior_evaluations)
             for other in OBSERVED_TYPES
         ):
             assigned[observed] = 1.0
@@ -342,7 +342,7 @@ def _evaluate_threshold_pair_core(
         1.0 if masses[1, 1] <= TIE_TOLERANCE else shares[1, 1] / masses[1, 1]
     )
     weight = scenario.diversity_weight
-    posterior = {
+    posterior_evaluations = {
         (0, 0): 0.0,
         (0, 1): weight,
         (1, 0): (1.0 - weight) * credibility_0,
@@ -350,7 +350,7 @@ def _evaluate_threshold_pair_core(
     }
     admission = _admission_probabilities(
         masses,
-        posterior,
+        posterior_evaluations,
         scenario.university_quota,
         scenario.benefit,
         clipped_0,
@@ -371,10 +371,10 @@ def _evaluate_threshold_pair_core(
         admission_probability_11=admission[1, 1],
         credibility_0=credibility_0,
         credibility_1=credibility_1,
-        posterior_evaluation_00=posterior[0, 0],
-        posterior_evaluation_01=posterior[0, 1],
-        posterior_evaluation_10=posterior[1, 0],
-        posterior_evaluation_11=posterior[1, 1],
+        posterior_evaluation_00=posterior_evaluations[0, 0],
+        posterior_evaluation_01=posterior_evaluations[0, 1],
+        posterior_evaluation_10=posterior_evaluations[1, 0],
+        posterior_evaluation_11=posterior_evaluations[1, 1],
         admitted_high_ability_share=(
             (shares[1, 0] * admission[1, 0] + shares[1, 1] * admission[1, 1])
             / quota
@@ -447,14 +447,14 @@ def _regime_from_outcomes(outcomes: TwoCriterionOutcomes) -> Regime:
 
 def _hat_x_on_class(
     rationing_class: list[tuple[int, int]],
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
     benefit: float,
     tutoring_threshold_0: float,
     tutoring_threshold_1: float,
 ) -> dict[tuple[int, int], float]:
     return _hat_candidate(
         set(rationing_class),
-        posterior,
+        posterior_evaluations,
         benefit,
         tutoring_threshold_0,
         tutoring_threshold_1,
@@ -463,11 +463,11 @@ def _hat_x_on_class(
 
 def _rationing_class_and_residual(
     masses: dict[tuple[int, int], float],
-    posterior: dict[tuple[int, int], float],
+    posterior_evaluations: dict[tuple[int, int], float],
     quota: float,
 ) -> tuple[list[tuple[int, int]] | None, float]:
     residual = quota
-    for group in _posterior_classes(posterior):
+    for group in _posterior_classes(posterior_evaluations):
         class_mass = sum(masses[observed] for observed in group)
         if class_mass <= TIE_TOLERANCE:
             continue
@@ -519,14 +519,14 @@ def _quota_gap(
         tutoring_threshold_0,
         tutoring_threshold_1,
     )
-    posterior = {
+    posterior_evaluations = {
         (0, 0): outcomes.posterior_evaluation_00,
         (0, 1): outcomes.posterior_evaluation_01,
         (1, 0): outcomes.posterior_evaluation_10,
         (1, 1): outcomes.posterior_evaluation_11,
     }
     rationing_class, residual = _rationing_class_and_residual(
-        masses, posterior, scenario.university_quota
+        masses, posterior_evaluations, scenario.university_quota
     )
     if rationing_class is None:
         return (tutoring_benefit_0 - tutoring_threshold_0) + (
@@ -534,7 +534,7 @@ def _quota_gap(
         )
     hat = _hat_x_on_class(
         rationing_class,
-        posterior,
+        posterior_evaluations,
         scenario.benefit,
         clipped_0,
         clipped_1,
@@ -748,13 +748,13 @@ def _classify_1d(residual, parameter: float, lower: float, upper: float, benefit
 
 
 def _ranking_signature(outcomes: TwoCriterionOutcomes) -> tuple[tuple[tuple[int, int], ...], ...]:
-    posterior = {
+    posterior_evaluations = {
         (0, 0): outcomes.posterior_evaluation_00,
         (0, 1): outcomes.posterior_evaluation_01,
         (1, 0): outcomes.posterior_evaluation_10,
         (1, 1): outcomes.posterior_evaluation_11,
     }
-    return tuple(tuple(group) for group in _posterior_classes(posterior))
+    return tuple(tuple(group) for group in _posterior_classes(posterior_evaluations))
 
 
 def _classify_jacobian(
@@ -1333,7 +1333,7 @@ def run_two_criterion_monte_carlo_validation(
                     if high_observed == 0
                     else type_counts[1, diversity] / high_observed
                 )
-            posterior = {
+            posterior_evaluations = {
                 (0, 0): 0.0,
                 (0, 1): weight,
                 (1, 0): (1.0 - weight) * credibility[0],
@@ -1373,10 +1373,10 @@ def run_two_criterion_monte_carlo_validation(
                 admission_probability_11=trial_x[1, 1],
                 credibility_0=credibility[0],
                 credibility_1=credibility[1],
-                posterior_evaluation_00=posterior[0, 0],
-                posterior_evaluation_01=posterior[0, 1],
-                posterior_evaluation_10=posterior[1, 0],
-                posterior_evaluation_11=posterior[1, 1],
+                posterior_evaluation_00=posterior_evaluations[0, 0],
+                posterior_evaluation_01=posterior_evaluations[0, 1],
+                posterior_evaluation_10=posterior_evaluations[1, 0],
+                posterior_evaluation_11=posterior_evaluations[1, 1],
                 admitted_high_ability_share=admitted_high_ability / seats,
                 admitted_diversity_share=admitted_diversity / seats,
                 aggregate_tutoring_expenditure=(
