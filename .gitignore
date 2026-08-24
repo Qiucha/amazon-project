@@ -25,9 +25,3 @@ sources/
 AGENTS.md
 CONTEXT.md
 skills-lock.json
-
-# NCES HSLS:09 public-use microdata (terms restrict casual redistribution;
-# keep local under reference_dataset/hsls09_puf/ — see that folder's README)
-reference_dataset/hsls09_puf/
-reference_dataset/Most-Recent-Cohorts-Institution*.zip
-reference_dataset/College_Scorecard_Raw_Data*.zip

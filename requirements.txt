@@ -1,3 +1,6 @@
+# Notebooks and notebook tests
 matplotlib
 numpy
-matplotlib
+
+# Test suite (python -m pytest tests/)
+pytest
